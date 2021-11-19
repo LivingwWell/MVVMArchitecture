@@ -237,12 +237,6 @@ abstract class ViewBindingBaseFragment<V : ViewBinding, VM : BaseViewModel<out B
     fun <T> observe(liveData: LiveData<T>, onChanged: ((t: T) -> Unit)) =
         liveData.observe(this, Observer { onChanged(it) })
 
-    /**
-     * 如果加载中对话框可手动取消，并且开启了取消耗时任务的功能，则在取消对话框后调用取消耗时任务
-     */
-    @CallSuper
-    override fun onCancelLoadingDialog() = mViewModel.cancelConsumingTask()
-
     override fun onDestroyView() {
         super.onDestroyView()
         Utils.releaseBinding(this.javaClass, ViewBindingBaseFragment::class.java, this, "mBinding")

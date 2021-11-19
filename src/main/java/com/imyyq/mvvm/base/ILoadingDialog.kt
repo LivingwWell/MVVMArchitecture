@@ -21,15 +21,11 @@ interface ILoadingDialog {
         if (isCancelConsumingTaskWhenLoadingDialogCanceled() &&
             (isLoadingDialogCancelable() || isLoadingDialogCanceledOnTouchOutside())
         ) {
-            dialog.setOnCancelListener { onCancelLoadingDialog() }
+            dialog.setOnCancelListener { }
         }
         dialog.findViewById<TextView>(loadingDialogLayoutMsgId())?.text = msg
     }
 
-    /**
-     * 加载中对话框被用户手动取消了，则回调此方法
-     */
-    fun onCancelLoadingDialog()
 
     /**
      * 隐藏加载中对话框

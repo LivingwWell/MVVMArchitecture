@@ -19,8 +19,6 @@ import com.imyyq.mvvm.utils.SingleLiveEvent
 import com.imyyq.mvvm.utils.Utils
 import com.imyyq.mvvm.utils.isInUIThread
 import com.kingja.loadsir.callback.Callback
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.disposables.Disposable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
@@ -123,37 +121,10 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
         if (this::mModel.isInitialized) {
             mModel.onCleared()
         }
-
         LiveDataBus.removeObserve(this)
         LiveDataBus.removeStickyObserver(this)
-        cancelConsumingTask()
     }
 
-    /**
-     * 取消耗时任务，比如在界面销毁时，或者在对话框消失时
-     */
-    fun cancelConsumingTask() {
-        // ViewModel销毁时会执行，同时取消所有异步任务
-        if (this::mCompositeDisposable.isInitialized) {
-            (mCompositeDisposable as CompositeDisposable).clear()
-        }
-        if (this::mCallList.isInitialized) {
-            mCallList.forEach { it.cancel() }
-            mCallList.clear()
-        }
-        viewModelScope.cancel()
-    }
-
-    /**
-     * 给 Rx 使用的，如果项目中有使用到 Rx 异步相关的，在订阅时需要把订阅管理起来。
-     * 通常异步操作都是在 vm 中进行的，管理起来的目的是让异步操作在界面销毁时也一起销毁，避免造成内存泄露
-     */
-    fun addSubscribe(disposable: Any) {
-        if (!this::mCompositeDisposable.isInitialized) {
-            mCompositeDisposable = CompositeDisposable()
-        }
-        (mCompositeDisposable as CompositeDisposable).add(disposable as Disposable)
-    }
 
     /**
      * 不使用 Rx，使用 Retrofit 原生的请求方式
@@ -167,7 +138,7 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
 
     // 以下是加载中对话框相关的 =========================================================
 
-    fun showLoadingDialog() {
+    fun EmptyCallbackshowLoadingDialog() {
         showLoadingDialog(getApplication<Application>().getString(R.string.please_wait))
     }
 

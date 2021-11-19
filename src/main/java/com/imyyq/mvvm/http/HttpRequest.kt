@@ -20,7 +20,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.internal.platform.Platform
 import retrofit2.*
-import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -67,17 +66,6 @@ object HttpRequest {
             mDefaultHeader = ArrayMap()
         }
         mDefaultHeader[name] = value
-    }
-
-    /**
-     * 获取
-     */
-    private fun getRxJavaAdapter(): Any? {
-        try {
-            return RxJava2CallAdapterFactory.create()
-        } catch (e: Throwable) {
-        }
-        return null
     }
 
     /**
@@ -162,11 +150,7 @@ object HttpRequest {
                     client.newCall(it)
                 }
             }
-            // Kotlin 使用协程，Java 使用 rx
-            val adapter = getRxJavaAdapter()
-            adapter?.let {
-                builder.addCallAdapterFactory(it as CallAdapter.Factory) // 回调处理，可以设置Rx作为回调的处理
-            }
+
             obj = builder.build().create(cls)
             mServiceMap[name] = obj
         }
@@ -203,43 +187,7 @@ object HttpRequest {
         return null
     }
 
-    /**
-     * Retrofit 的原生异步请求，如果你不想使用 Rx，那么可以使用这个
-     */
-    @JvmStatic
-    fun <T, R> request(
-        call: Call<T>,
-        callback: CommonObserver<R>
-    ): Call<T> {
-        callback.onStart()
 
-        call.enqueue(object : Callback<T> {
-            override fun onResponse(
-                call: Call<T>,
-                response: Response<T>
-            ) {
-                val baseResponse = response.body()
-
-                @Suppress("UNCHECKED_CAST")
-                val resp = baseResponse as? IBaseResponse<R>
-                if (resp == null) {
-                    callback.onFailed(entityNullable, msgEntityNullable)
-                } else {
-                    callback.onNext(resp)
-                }
-                callback.onComplete()
-            }
-
-            override fun onFailure(
-                call: Call<T>,
-                t: Throwable
-            ) {
-                callback.onError(t)
-                callback.onComplete()
-            }
-        })
-        return call
-    }
 
     /**
      * 在合适的位置调用此方法，多次连击后将弹出修改 baseUrl 的对话框。

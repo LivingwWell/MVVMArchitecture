@@ -32,9 +32,6 @@ abstract class AppBarNoViewModelBaseFragment<V : ViewBinding, AppBarV : ViewBind
     final override fun initUiChangeLiveData() {
     }
 
-    @SuppressLint("MissingSuperCall")
-    final override fun onCancelLoadingDialog() {
-    }
 
     final override fun initViewModel(viewModelStoreOwner: ViewModelStoreOwner): BaseViewModel<BaseModel> {
         return super.initViewModel(viewModelStoreOwner)
