@@ -123,7 +123,8 @@ dependencies {
     checkMVVMConfigProperty(IncludeLib.room, "room")
     if (IncludeLib.room) {
         api Deps.roomRuntime
-        // kapt Deps.roomCompiler
+        api Deps.roomKtx
+        kapt Deps.roomCompiler
     } else {
         compileOnly Deps.roomRuntime
     }
@@ -174,4 +175,6 @@ dependencies {
     //Echarts
     //api 'com.github.frendyxzc:Charts:0.0.2'
     api 'com.github.abel533:ECharts:3.0.0.2'
+    //MMKV
+    api Deps.mmkv
 }
