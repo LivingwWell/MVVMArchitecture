@@ -32,6 +32,7 @@ object RoomUtil {
             if (callback != null) {
                 builder.addCallback(callback)
             }
+            builder.fallbackToDestructiveMigration()
             database = builder.build()
             mDBEntityMap[name] = database
         }

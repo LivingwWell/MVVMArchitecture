@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.os.Bundle
+import android.view.animation.AnticipateInterpolator
 import androidx.annotation.CallSuper
 import androidx.annotation.MainThread
 import androidx.collection.ArrayMap
@@ -47,9 +48,33 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
     private lateinit var mCallList: MutableList<Call<*>>
 
     internal val mUiChangeLiveData by lazy { UiChangeLiveData() }
+    //刷新通知
+    var onRefresh: SingleLiveEvent<Any?> = SingleLiveEvent()
+
+    //加载更多通知
+    var onLoadMore: SingleLiveEvent<Any?> = SingleLiveEvent()
+    //数据加载完毕
+    var recyclerLoadMoreComplete: SingleLiveEvent<Any?> = SingleLiveEvent()
+
+    //数据加载错误
+    var recyclerLoadMoreFail: SingleLiveEvent<Any?> = SingleLiveEvent()
+
+    //数据加载完成
+    var recyclerloadMoreEnd: SingleLiveEvent<Any?> = SingleLiveEvent()
+
 
     internal var mBundle: Bundle? = null
     internal var mIntent: Intent? = null
+
+    var index = 1
+
+    fun nextPage(pages: Int) {
+        if (index < pages) {
+            index++
+        } else if (index == pages) {
+            index = -1
+        }
+    }
 
     /**
      * 是否自动创建仓库，默认是 true，
@@ -80,6 +105,28 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
                 onComplete?.invoke()
             }
         }
+    }
+
+    /**
+     * 分页网络请求
+     */
+    fun <T> pageLaunch(
+        block: suspend CoroutineScope.() -> PageIBaseResponse<T?>?,
+        onSuccess: (() -> Unit)? = null,
+        onComplete: (() -> Unit)? = null,
+        onFailed: ((code: Int, msg: String?) -> Unit)? = null,
+        onResult: ((t: MutableList<T?>, total: Int, index: Int, pages: Int) -> Unit),
+    ) {
+        viewModelScope.launch {
+            try {
+                HttpHandler.handlePageResult(block(), onSuccess, onResult, onFailed)
+            } catch (e: Exception) {
+                onFailed?.let { HttpHandler.handleException(e, it) }
+            } finally {
+                onComplete?.invoke()
+            }
+        }
+
     }
 
     /**
@@ -234,7 +281,10 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
 
     fun startActivityForResult(clazz: Class<out Activity>, bundle: Bundle?) {
         CheckUtil.checkStartForResultEvent(mUiChangeLiveData.startActivityForResultEventWithBundle)
-        LiveDataBus.send(mUiChangeLiveData.startActivityForResultEventWithBundle!!, Pair(clazz, bundle))
+        LiveDataBus.send(
+            mUiChangeLiveData.startActivityForResultEventWithBundle!!,
+            Pair(clazz, bundle)
+        )
     }
 
     fun startActivityForResult(clazz: Class<out Activity>, map: ArrayMap<String, *>) {
@@ -260,6 +310,8 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
         var startActivityForResultEventWithMap: String? = null
         var startActivityForResultEventWithBundle: String? = null
 
+
+
         var finishEvent: String? = null
         var setResultEvent: String? = null
 
@@ -268,6 +320,7 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
         fun initLoadSirEvent() {
             loadSirEvent = SingleLiveEvent()
         }
+
 
         fun initLoadingDialogEvent() {
             showLoadingDialogEvent = SingleLiveEvent()

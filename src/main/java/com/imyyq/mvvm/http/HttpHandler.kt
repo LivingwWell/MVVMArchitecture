@@ -1,6 +1,7 @@
 package com.imyyq.mvvm.http
 
 import com.imyyq.mvvm.base.IBaseResponse
+import com.imyyq.mvvm.base.PageIBaseResponse
 import com.imyyq.mvvm.utils.LogUtil
 import retrofit2.HttpException
 
@@ -32,7 +33,7 @@ object HttpHandler {
             return
         }
         // 请求成功
-        if (entity.isSuccess()) {
+        if (entity.code() == 200) {
             // 回调成功
             onSuccess?.invoke()
             // 实体不为 null 才有价值
@@ -42,6 +43,41 @@ object HttpHandler {
             onFailed?.invoke(code, msg)
         }
     }
+
+    /**
+     * 分页请求数据
+     */
+    fun <T> handlePageResult(
+        entity: PageIBaseResponse<T?>?,
+        onSuccess: (() -> Unit)? = null,
+        onResult: ((t: MutableList<T?>, total: Int, index: Int, pages: Int) -> Unit),
+        onFailed: ((code: Int, msg: String?) -> Unit)? = null
+    ) {
+        // 防止实体为 null
+        if (entity == null) {
+            onFailed?.invoke(entityNullable, msgEntityNullable)
+            return
+        }
+        val code = entity.code()
+        val msg = entity.msg()
+        // 防止状态码为 null
+        if (code == null) {
+            onFailed?.invoke(entityCodeNullable, msgEntityCodeNullable)
+            return
+        }
+        // 请求成功
+        if (entity.code() == 200) {
+            // 回调成功
+            onSuccess?.invoke()
+            // 实体不为 null 才有价值
+            entity.data()
+                ?.let { onResult.invoke(it, entity.total(), entity.index(), entity.pages()) }
+        } else {
+            // 失败了
+            onFailed?.invoke(code, msg)
+        }
+    }
+
 
     /**
      * 处理异常
