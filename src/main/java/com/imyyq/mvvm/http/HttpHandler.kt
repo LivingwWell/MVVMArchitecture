@@ -18,18 +18,18 @@ object HttpHandler {
         entity: IBaseResponse<T?>?,
         onSuccess: (() -> Unit)? = null,
         onResult: ((t: T) -> Unit),
-        onFailed: ((code: Int, msg: String?) -> Unit)? = null
+        onFailed: ((code: Int, msg: String?) -> Unit)
     ) {
         // 防止实体为 null
         if (entity == null) {
-            onFailed?.invoke(entityNullable, msgEntityNullable)
+            onFailed.invoke(entityNullable, msgEntityNullable)
             return
         }
         val code = entity.code()
         val msg = entity.msg()
         // 防止状态码为 null
         if (code == null) {
-            onFailed?.invoke(entityCodeNullable, msgEntityCodeNullable)
+            onFailed.invoke(entityCodeNullable, msgEntityCodeNullable)
             return
         }
         // 请求成功
@@ -51,18 +51,18 @@ object HttpHandler {
         entity: PageIBaseResponse<T?>?,
         onSuccess: (() -> Unit)? = null,
         onResult: ((t: MutableList<T?>, total: Int, index: Int, pages: Int) -> Unit),
-        onFailed: ((code: Int, msg: String?) -> Unit)? = null
+        onFailed: ((code: Int, msg: String?) -> Unit)
     ) {
         // 防止实体为 null
         if (entity == null) {
-            onFailed?.invoke(entityNullable, msgEntityNullable)
+            onFailed.invoke(entityNullable, msgEntityNullable)
             return
         }
         val code = entity.code()
         val msg = entity.msg()
         // 防止状态码为 null
         if (code == null) {
-            onFailed?.invoke(entityCodeNullable, msgEntityCodeNullable)
+            onFailed.invoke(entityCodeNullable, msgEntityCodeNullable)
             return
         }
         // 请求成功
@@ -74,7 +74,7 @@ object HttpHandler {
                 ?.let { onResult.invoke(it, entity.total(), entity.index(), entity.pages()) }
         } else {
             // 失败了
-            onFailed?.invoke(code, msg)
+            onFailed.invoke(code, msg)
         }
     }
 

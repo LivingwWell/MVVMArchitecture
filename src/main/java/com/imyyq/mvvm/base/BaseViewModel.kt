@@ -11,15 +11,18 @@ import androidx.collection.ArrayMap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewModelScope
+import com.blankj.utilcode.util.LogUtils
 import com.imyyq.mvvm.R
 import com.imyyq.mvvm.app.CheckUtil
 import com.imyyq.mvvm.app.RepositoryManager
 import com.imyyq.mvvm.bus.LiveDataBus
 import com.imyyq.mvvm.http.HttpHandler
+import com.imyyq.mvvm.utils.LogUtil
 import com.imyyq.mvvm.utils.SingleLiveEvent
 import com.imyyq.mvvm.utils.Utils
 import com.imyyq.mvvm.utils.isInUIThread
 import com.kingja.loadsir.callback.Callback
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +31,7 @@ import kotlinx.coroutines.launch
 import retrofit2.Call
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.net.SocketTimeoutException
 import java.util.*
 
 open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app), IViewModel,
@@ -93,16 +97,13 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
         block: suspend CoroutineScope.() -> IBaseResponse<T?>?,
         onSuccess: (() -> Unit)? = null,
         onResult: ((t: T) -> Unit),
-        onFailed: ((code: Int, msg: String?) -> Unit)? = null,
-        onComplete: (() -> Unit)? = null
+        onFailed: ((code: Int, msg: String?) -> Unit),
     ) {
         viewModelScope.launch {
             try {
                 HttpHandler.handleResult(block(), onSuccess, onResult, onFailed)
             } catch (e: Exception) {
-                onFailed?.let { HttpHandler.handleException(e, it) }
-            } finally {
-                onComplete?.invoke()
+                onFailed.let { HttpHandler.handleException(e, it) }
             }
         }
     }
@@ -113,8 +114,7 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
     fun <T> pageLaunch(
         block: suspend CoroutineScope.() -> PageIBaseResponse<T?>?,
         onSuccess: (() -> Unit)? = null,
-        onComplete: (() -> Unit)? = null,
-        onFailed: ((code: Int, msg: String?) -> Unit)? = null,
+        onFailed: ((code: Int, msg: String?) -> Unit),
         onResult: ((t: MutableList<T?>, total: Int, index: Int, pages: Int) -> Unit),
     ) {
         viewModelScope.launch {
@@ -122,8 +122,6 @@ open class BaseViewModel<M : BaseModel>(app: Application) : AndroidViewModel(app
                 HttpHandler.handlePageResult(block(), onSuccess, onResult, onFailed)
             } catch (e: Exception) {
                 onFailed?.let { HttpHandler.handleException(e, it) }
-            } finally {
-                onComplete?.invoke()
             }
         }
 

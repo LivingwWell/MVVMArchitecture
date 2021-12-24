@@ -1,19 +1,13 @@
 package com.imyyq.mvvm.http
 
-import android.view.View
 import android.widget.*
-import androidx.appcompat.app.AlertDialog
 import androidx.collection.ArrayMap
-import com.imyyq.mvvm.R
 import com.imyyq.mvvm.app.GlobalConfig
-import com.imyyq.mvvm.base.IBaseResponse
 import com.imyyq.mvvm.http.interceptor.HeaderInterceptor
 import com.imyyq.mvvm.http.interceptor.logging.Level
 import com.imyyq.mvvm.http.interceptor.logging.LoggingInterceptor
-import com.imyyq.mvvm.utils.AppUtil
 import com.imyyq.mvvm.utils.LogUtil
 import com.imyyq.mvvm.utils.SPUtils
-import com.imyyq.mvvm.utils.Utils
 import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -26,10 +20,6 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Created by 杨永青 on 16/9/11.
- *
- *
- *
- *
  * 目的1：没网的时候，尝试读取缓存，避免界面空白，只需要addInterceptor和cache即可（已实现）
  * 目的2：有网的时候，总是读取网络上最新的，或者设置一定的超时时间，比如10秒内有多个同一请求，则都从缓存中获取（没实现）
  * 目的3：不同的接口，不同的缓存策略（？）
@@ -81,6 +71,8 @@ object HttpRequest {
 
             // 超时时间
             httpClientBuilder.connectTimeout(mDefaultTimeout.toLong(), TimeUnit.SECONDS)
+                .readTimeout(mDefaultTimeout.toLong(),TimeUnit.SECONDS)
+                .writeTimeout(mDefaultTimeout.toLong(),TimeUnit.SECONDS)
 
             // 拦截器
             interceptors.forEach { interceptor ->
@@ -112,46 +104,8 @@ object HttpRequest {
                 // JSON解析
                 .addConverterFactory(GsonConverterFactory.create())
 
-            if (GlobalConfig.gIsNeedChangeBaseUrl) {
-                if (!this::mBaseUrlMap.isInitialized) {
-                    mBaseUrlMap = ArrayMap()
-                }
-                // 将 url 缓存起来
-                val sp = SPUtils.getInstance(mSpName)
-                if (sp.getBoolean(mKeyIsSave)) {
-                    mBaseUrlMap[host] = sp.getString(host)
-                } else {
-                    mBaseUrlMap[host] = ""
-                }
-
-                builder.callFactory {
-                    LogUtil.i("HttpRequest", "getService: old ${it.url()}")
-                    mBaseUrlMap.forEach { entry ->
-                        val key = entry.key
-                        var value = entry.value
-                        // 找到 url 并且需要更改
-                        val url = it.url().toString()
-                        if (url.startsWith(key) && value.isNotEmpty()) {
-                            // 防止尾缀有问题
-                            if (key.endsWith("/") && !value.endsWith("/")) {
-                                value += "/"
-                            } else if (!key.endsWith("/") && value.endsWith("/")) {
-                                value = value.substring(0, value.length - 1)
-                            }
-                            // 替换 url 并创建新的 call
-                            val newRequest: Request =
-                                it.newBuilder()
-                                    .url(HttpUrl.get(url.replaceFirst(key, value)))
-                                    .build()
-                            LogUtil.i("HttpRequest", "getService: new ${newRequest.url()}")
-                            return@callFactory client.newCall(newRequest)
-                        }
-                    }
-                    client.newCall(it)
-                }
-            }
-
             obj = builder.build().create(cls)
+
             mServiceMap[name] = obj
         }
         @Suppress("UNCHECKED_CAST")
@@ -187,83 +141,4 @@ object HttpRequest {
         return null
     }
 
-
-
-    /**
-     * 在合适的位置调用此方法，多次连击后将弹出修改 baseUrl 的对话框。
-     * 前提是必须开启了 [GlobalConfig.gIsNeedChangeBaseUrl] 属性，同时获取了 service 实例
-     */
-    fun multiClickToChangeBaseUrl(view: View, frequency: Int) {
-        if (!GlobalConfig.gIsNeedChangeBaseUrl) {
-            return
-        }
-        Utils.multiClickListener(view, frequency) {
-            if (!this::mBaseUrlMap.isInitialized) {
-                return@multiClickListener
-            }
-            AppUtil.getActivityByView(view)?.let { activity ->
-                val tvList = mutableListOf<TextView>()
-                val etList = mutableListOf<EditText>()
-
-                val layout = LinearLayout(activity)
-                layout.orientation = LinearLayout.VERTICAL
-
-                mBaseUrlMap.forEach { entry ->
-                    val textView = TextView(activity)
-                    val edit = EditText(activity)
-
-                    textView.text = entry.key
-                    edit.setText(if (entry.value.isNotEmpty()) entry.value else entry.key)
-                    edit.selectAll()
-
-                    layout.addView(textView)
-                    layout.addView(edit)
-
-                    tvList.add(textView)
-                    etList.add(edit)
-                }
-
-                val btn = Button(activity)
-                btn.text = activity.getString(R.string.restore)
-                btn.setOnClickListener {
-                    tvList.forEachIndexed { index, textView ->
-                        etList[index].setText(textView.text.toString())
-                    }
-                }
-                layout.addView(btn)
-
-                val sp = SPUtils.getInstance(mSpName)
-
-                val checkBox = CheckBox(activity)
-                checkBox.text = activity.getString(R.string.effective_next_time)
-                checkBox.isChecked = sp.getBoolean(mKeyIsSave)
-                layout.addView(checkBox)
-
-                val editDialog = AlertDialog.Builder(activity)
-                editDialog.setView(layout)
-
-                editDialog.setPositiveButton(R.string.confirm) { dialog, _ ->
-                    tvList.forEachIndexed { index, textView ->
-                        mBaseUrlMap[textView.text.toString()] = etList[index].text.toString()
-                    }
-                    checkBox.isChecked.apply {
-                        sp.put(mKeyIsSave, this)
-
-                        if (this) {
-                            mBaseUrlMap.forEach { entry ->
-                                sp.put(entry.key, entry.value)
-                            }
-                        } else {
-                            mBaseUrlMap.forEach { entry ->
-                                sp.put(entry.key, "")
-                            }
-                        }
-                    }
-                    dialog.dismiss()
-                }
-
-                editDialog.create().show()
-            }
-        }
-    }
 }

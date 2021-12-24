@@ -42,13 +42,3 @@ fun multiClickToOpenLog(
 ) {
     frequency?.let { LogUtil.multiClickToOpenLog(view, it) }
 }
-
-@BindingAdapter(
-    value = ["multiClickToChangeBaseUrl"]
-)
-fun multiClickToChangeBaseUrl(
-    view: View,
-    frequency: Int?
-) {
-    frequency?.let { HttpRequest.multiClickToChangeBaseUrl(view, it) }
-}
